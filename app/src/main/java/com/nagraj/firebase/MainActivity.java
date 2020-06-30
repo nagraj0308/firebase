@@ -12,6 +12,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -36,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference databaseReference;
     Uri changeImgUri;
     UploadTask uploadTask;
-    String username, url;
+    String username, url,key;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
     FirebaseUser curUser;
 
@@ -113,8 +115,8 @@ public class MainActivity extends AppCompatActivity {
             return uploadedFileRef.getDownloadUrl();
         }).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                String path = databaseReference.push().getKey();
-                databaseReference.child(path).setValue(new Upload("nagraj0308", task.getResult().toString()));
+                key = databaseReference.push().getKey();
+                databaseReference.child(key).setValue(new Upload("nagraj0308", task.getResult().toString()));
                 downloadPhoto();
             }
         });
@@ -138,6 +140,11 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    public void updateDp(String username) {
+        StorageReference deleteReference=FirebaseStorage.getInstance().getReferenceFromUrl(url);
+        deleteReference.delete().addOnSuccessListener(aVoid -> databaseReference.child(key).removeValue());
     }
 
     private void signInAnonymously() {
