@@ -3,7 +3,6 @@ package com.nagraj.firebase;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,8 +11,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -129,15 +127,22 @@ public class MainActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot child : snapshot.getChildren()) {
                     Upload upload = child.getValue(Upload.class);
+                    log(upload.username);
+                    log(username);
+                    Picasso.get().load(upload.url).into(ivCur);
+
+                    //Glide.with(MainActivity.this).load(upload.url).error(getDrawable(R.drawable.ic_launcher_background)).into(ivCur);
+
                     if (upload.username.equals(username)) {
+                        log("on Data Change2");
                         url = upload.url;
-                        Picasso.get().load(url).into(ivCur);
+                        Glide.with(MainActivity.this).load(url).error(getDrawable(R.drawable.ic_launcher_background)).into(ivCur);
+                        // Picasso.get().load(url).into(ivCur);
                     }
                 }
             }
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-
             }
         });
     }
@@ -167,5 +172,6 @@ public class MainActivity extends AppCompatActivity {
     void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
+
 
 }
