@@ -11,23 +11,20 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.bumptech.glide.Glide;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -40,7 +37,8 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference databaseReference;
     Uri changeImgUri;
     UploadTask uploadTask;
-    String username, url,key;
+    String username = "nagraj0308";
+    String url;
 
 
     @Override
@@ -78,7 +76,6 @@ public class MainActivity extends AppCompatActivity {
     public void uploadImage() {
         if (changeImgUri != null) {
             if (storageReference != null) {
-                username = "nagraj0308";
                 uploadedFileRef = storageReference.child(username);
                 uploadTask = uploadedFileRef.putFile(changeImgUri);
                 uploadTask.addOnSuccessListener(taskSnapshot -> {
@@ -94,17 +91,22 @@ public class MainActivity extends AppCompatActivity {
             showToast("Please select a image !!");
         }
     }
+
     public void saveFileUrlInDataBase() {
         final Task<Uri> urlTask = uploadTask.continueWithTask(task -> uploadedFileRef.getDownloadUrl()
         ).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                url=task.getResult().toString();
-                key = databaseReference.push().getKey();
-                databaseReference.child(key).setValue(new Upload(username, url));
-                downloadPhoto();
+                url = task.getResult().toString();
+                addOrUpdateUserInDb(username, url);
             }
         });
 
+    }
+
+    public void addOrUpdateUserInDb(String username, String url) {
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference(FIREBASE_DATABASE_DPS);
+        userRef.child(username).setValue(new User(username,url));
+        downloadPhoto();
     }
 
     public void downloadPhoto() {
@@ -112,13 +114,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot child : snapshot.getChildren()) {
-                    Upload upload = child.getValue(Upload.class);
-                    if (upload.username.equals(username)) {
-                        url = upload.url;
-                        log(url+" ");
+                    User user = child.getValue(User.class);
+                    if (user.username.equals(username)) {
+                        url = user.url;
+                        log(url + " ");
                         Glide.with(MainActivity.this).load(url).error(getDrawable(R.drawable.ic_launcher_background)).into(ivCur);
                         // Picasso.get().load(url).into(ivCur);
-
                     }
                 }
             }
@@ -129,37 +130,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void updateByUsername(String username, String url) {
-        Query queryRef = databaseReference.orderByChild("username").equalTo(username);
-        queryRef.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-                snapshot.getRef().removeValue();
-            }
-
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-
-            }
-
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-    }
-
-
     public void log(String msg) {
         Log.v("NAGRAJ", msg);
     }
@@ -167,7 +137,5 @@ public class MainActivity extends AppCompatActivity {
     void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
-
-
 
 }

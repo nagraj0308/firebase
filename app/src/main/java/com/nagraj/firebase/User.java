@@ -2,15 +2,15 @@ package com.nagraj.firebase;
 
 import java.io.Serializable;
 
-public class Upload implements Serializable {
+class User implements Serializable {
     public String username;
     public String url;
 
-    public Upload() {
-
+    public User() {
     }
-    public Upload(String username, String url) {
+    public User(String username, String url) {
         this.username = username;
         this.url = url;
     }
+
 }
