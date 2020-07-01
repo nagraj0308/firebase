@@ -23,10 +23,6 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
 
-import java.util.HashMap;
-import java.util.Map;
-
-
 public class MainActivity extends AppCompatActivity {
     public static final String FIREBASE_STORAGE_DPS = "dps";
     public static final String FIREBASE_DATABASE_DPS = "dps";
