@@ -11,14 +11,18 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -37,25 +41,12 @@ public class MainActivity extends AppCompatActivity {
     Uri changeImgUri;
     UploadTask uploadTask;
     String username, url,key;
-    FirebaseAuth mAuth = FirebaseAuth.getInstance();
-    FirebaseUser curUser;
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        curUser = mAuth.getCurrentUser();
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user != null) {
-            // do your stuff
-        } else {
-            signInAnonymously();
-        }
         storageReference = FirebaseStorage.getInstance().getReference(FIREBASE_STORAGE_DPS);
         databaseReference = FirebaseDatabase.getInstance().getReference(FIREBASE_DATABASE_DPS);
         tvDpName = findViewById(R.id.tv_dp_name);
@@ -87,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     public void uploadImage() {
         if (changeImgUri != null) {
             if (storageReference != null) {
-                username = System.currentTimeMillis() + "";
+                username = "nagraj0308";
                 uploadedFileRef = storageReference.child(username);
                 uploadTask = uploadedFileRef.putFile(changeImgUri);
                 uploadTask.addOnSuccessListener(taskSnapshot -> {
@@ -103,18 +94,13 @@ public class MainActivity extends AppCompatActivity {
             showToast("Please select a image !!");
         }
     }
-
-
     public void saveFileUrlInDataBase() {
-        final Task<Uri> urlTask = uploadTask.continueWithTask(task -> {
-            if (!task.isSuccessful()) {
-                throw task.getException();
-            }
-            return uploadedFileRef.getDownloadUrl();
-        }).addOnCompleteListener(task -> {
+        final Task<Uri> urlTask = uploadTask.continueWithTask(task -> uploadedFileRef.getDownloadUrl()
+        ).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
+                url=task.getResult().toString();
                 key = databaseReference.push().getKey();
-                databaseReference.child(key).setValue(new Upload("nagraj0308", task.getResult().toString()));
+                databaseReference.child(key).setValue(new Upload(username, url));
                 downloadPhoto();
             }
         });
@@ -127,43 +113,52 @@ public class MainActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot child : snapshot.getChildren()) {
                     Upload upload = child.getValue(Upload.class);
-                    log(upload.username);
-                    log(username);
-                    Picasso.get().load(upload.url).into(ivCur);
-
-                    //Glide.with(MainActivity.this).load(upload.url).error(getDrawable(R.drawable.ic_launcher_background)).into(ivCur);
-
                     if (upload.username.equals(username)) {
-                        log("on Data Change2");
                         url = upload.url;
+                        log(url+" ");
                         Glide.with(MainActivity.this).load(url).error(getDrawable(R.drawable.ic_launcher_background)).into(ivCur);
                         // Picasso.get().load(url).into(ivCur);
+
                     }
                 }
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
             }
         });
     }
 
-    public void updateDp(String username) {
-        StorageReference deleteReference=FirebaseStorage.getInstance().getReferenceFromUrl(url);
-        deleteReference.delete().addOnSuccessListener(aVoid -> databaseReference.child(key).removeValue());
+    public void updateByUsername(String username, String url) {
+        Query queryRef = databaseReference.orderByChild("username").equalTo(username);
+        queryRef.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                snapshot.getRef().removeValue();
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
-    private void signInAnonymously() {
-        mAuth.signInAnonymously()
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        log("signInAnonymously:success");
-                        curUser = mAuth.getCurrentUser();
-                    } else {
-                        log("signInAnonymously:failure" + task.getException());
-                        curUser = null;
-                    }
-                });
-    }
 
     public void log(String msg) {
         Log.v("NAGRAJ", msg);
@@ -172,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
     void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
+
 
 
 }
